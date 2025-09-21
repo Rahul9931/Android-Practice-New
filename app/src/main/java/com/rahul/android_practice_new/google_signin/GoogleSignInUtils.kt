@@ -28,8 +28,8 @@ class GoogleSignInUtils {
             context: Context,
             scope: CoroutineScope,
             launcher: ActivityResultLauncher<Intent>?,
-            onLoginSuccess: (UserDetails) -> Unit, // Changed to pass user details
-            onLoginFailure: (Exception?) -> Unit = {} // Optional failure callback
+            onLoginSuccess: (GoogleUserDetails) -> Unit,
+            onLoginFailure: (Exception?) -> Unit = {}
         ) {
             val credentialManager = CredentialManager.create(context)
 
@@ -44,38 +44,25 @@ class GoogleSignInUtils {
                         is CustomCredential ->{
                             if(result.credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL){
                                 val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(result.credential.data)
-                                val googleTokenId = googleIdTokenCredential.idToken
-                                val authCredential = GoogleAuthProvider.getCredential(googleTokenId,null)
 
-                                val authResult = Firebase.auth.signInWithCredential(authCredential).await()
-                                val user = authResult.user
+                                // Extract user details from Google credentials
+                                val userDetails = GoogleUserDetails(
+                                    idToken = googleIdTokenCredential.idToken,
+                                    displayName = googleIdTokenCredential.displayName ?: "",
+                                    email = googleIdTokenCredential.id,
+                                    givenName = googleIdTokenCredential.givenName ?: "",
+                                    familyName = googleIdTokenCredential.familyName ?: "",
+                                    profilePictureUrl = googleIdTokenCredential.profilePictureUri?.toString() ?: "",
+                                )
 
-                                user?.let {
-                                    if(it.isAnonymous.not()){
-                                        // Extract user details
-                                        val userDetails = UserDetails(
-                                            uid = it.uid,
-                                            displayName = it.displayName ?: "",
-                                            email = it.email ?: "",
-                                            photoUrl = it.photoUrl?.toString() ?: "",
-                                            phoneNumber = it.phoneNumber ?: "",
-                                            isEmailVerified = it.isEmailVerified,
-                                            providerId = it.providerId,
-                                            creationTimestamp = it.metadata?.creationTimestamp ?: 0,
-                                            lastSignInTimestamp = it.metadata?.lastSignInTimestamp ?: 0
-                                        )
+                                // Log user details
+                                logUserDetails(userDetails)
 
-                                        // Log user details
-                                        logUserDetails(userDetails)
-
-                                        // Pass user details to callback
-                                        onLoginSuccess(userDetails)
-                                    }
-                                }
+                                // Pass user details to callback
+                                onLoginSuccess(userDetails)
                             }
                         }
                         else ->{
-                            // Handle other credential types if needed
                             onLoginFailure(Exception("Unsupported credential type"))
                         }
                     }
@@ -102,33 +89,27 @@ class GoogleSignInUtils {
                 .build()
         }
 
-        private fun logUserDetails(userDetails: UserDetails) {
-            Log.d("GoogleSignIn", "=== USER DETAILS ===")
-            Log.d("GoogleSignIn", "UID: ${userDetails.uid}")
+        private fun logUserDetails(userDetails: GoogleUserDetails) {
+            Log.d("GoogleSignIn", "=== GOOGLE USER DETAILS ===")
+            Log.d("GoogleSignIn", "ID Token: ${userDetails.idToken}")
             Log.d("GoogleSignIn", "Display Name: ${userDetails.displayName}")
             Log.d("GoogleSignIn", "Email: ${userDetails.email}")
+            Log.d("GoogleSignIn", "Given Name: ${userDetails.givenName}")
+            Log.d("GoogleSignIn", "Family Name: ${userDetails.familyName}")
+            Log.d("GoogleSignIn", "Profile Picture: ${userDetails.profilePictureUrl}")
             Log.d("GoogleSignIn", "Email Verified: ${userDetails.isEmailVerified}")
-            Log.d("GoogleSignIn", "Photo URL: ${userDetails.photoUrl}")
-            Log.d("GoogleSignIn", "Phone Number: ${userDetails.phoneNumber}")
-            Log.d("GoogleSignIn", "Provider ID: ${userDetails.providerId}")
-            Log.d("GoogleSignIn", "Account Created: ${userDetails.creationTimestamp}")
-            Log.d("GoogleSignIn", "Last Sign In: ${userDetails.lastSignInTimestamp}")
             Log.d("GoogleSignIn", "=========================")
         }
     }
 }
 
-// Data class to hold user details
-data class UserDetails(
-    val uid: String,
+// Data class to hold Google user details
+data class GoogleUserDetails(
+    val idToken: String,
     val displayName: String,
     val email: String,
-    val photoUrl: String,
-    val phoneNumber: String,
-    val isEmailVerified: Boolean,
-    val providerId: String,
-    val creationTimestamp: Long,
-    val lastSignInTimestamp: Long
+    val givenName: String,
+    val familyName: String,
+    val profilePictureUrl: String,
+    val isEmailVerified: Boolean = false
 )
-
-//
