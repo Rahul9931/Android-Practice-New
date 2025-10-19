@@ -14,6 +14,7 @@ import javax.inject.Inject
 class DIActivity : AppCompatActivity() {
 
     @Inject
+    @FirebaseQualifier
     lateinit var userRepository: UserRepository
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
