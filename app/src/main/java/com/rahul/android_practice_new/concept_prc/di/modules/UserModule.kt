@@ -1,7 +1,9 @@
 package com.rahul.android_practice_new.concept_prc.di.modules
 
 import com.rahul.android_practice_new.concept_prc.di.repository.FirebaseRepository
+import com.rahul.android_practice_new.concept_prc.di.repository.SQLRepository
 import com.rahul.android_practice_new.concept_prc.di.repository.UserRepository
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -10,10 +12,13 @@ import dagger.hilt.components.SingletonComponent
 
 @InstallIn(SingletonComponent::class)
 @Module
-class UserModule {
+abstract class UserModule {
 
-    @Provides
-    fun provideFirebaseRepo(): UserRepository{
-        return FirebaseRepository()
-    }
+//    @Provides
+//    fun provideFirebaseRepo(): UserRepository{
+//        return FirebaseRepository()
+//    }
+
+    @Binds
+    abstract fun provideSQLRepo(sqlRepository: SQLRepository): UserRepository
 }
